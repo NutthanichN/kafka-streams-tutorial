@@ -1,0 +1,8 @@
+# Default ignored files
+.idea/
+.gradle/
+build/
+
+streams.properties
+ccloud.properties
+*.log
