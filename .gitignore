@@ -4,5 +4,6 @@
 build/
 
 streams.properties
+streams.properties.orig2
 ccloud.properties
 *.log
