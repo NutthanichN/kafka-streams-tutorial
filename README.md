@@ -1,8 +1,14 @@
+This repository is cloned from [here](https://github.com/confluentinc/learn-kafka-courses)
+for the purpose of following Confluent Cloud's tutorial on Kafka Streams application.
+The video tutorials are [here](https://youtu.be/gJUTErFyuY4).
+
 # Kafka Streams Course
 
 This is the code repo containing the full solutions to the exercises
 for the Kafka Streams course.  To get started you'll need to sign up
 for a CCloud account.  Follow the steps below to get everything ready to go.
+
+See also: [The original repository that contains all materials for the Apache Kafka and Confluent courses](https://github.com/confluentinc/learn-kafka-courses)
 
 ##  Confluent Cloud
  
