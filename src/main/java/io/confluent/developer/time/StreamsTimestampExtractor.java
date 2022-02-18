@@ -23,7 +23,46 @@ import java.util.Properties;
 
 public class StreamsTimestampExtractor {
 
+    static class OrderTimestampExtractor implements TimestampExtractor {
+        @Override
+        public long extract(ConsumerRecord<Object, Object> record, long partitionTime) {
+            ElectronicOrder order = (ElectronicOrder)record.value();
+            System.out.println("Extracting time of " + order.getTime() + " from " + order);
+            return order.getTime();
+        }
+    }
+
     public static void main(String[] args) throws IOException {
 
+        Properties streamsProps = StreamsUtils.loadProperties();
+        streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG,
+                "extractor-windowed-streams");
+
+        StreamsBuilder builder = new StreamsBuilder();
+        String inputTopic = streamsProps.getProperty("extractor.input.topic");
+        String outputTopic = streamsProps.getProperty("extractor.output.topic");
+        Map<String, Object> configMap = StreamsUtils.propertiesToMap(streamsProps);
+
+        SpecificAvroSerde<ElectronicOrder> electronicSerde =
+                StreamsUtils.getSpecificAvroSerde(configMap);
+
+        final KStream<String, ElectronicOrder> electronicStream =
+                builder.stream(inputTopic,
+                                Consumed.with(Serdes.String(), electronicSerde)
+                                        .withTimestampExtractor(new OrderTimestampExtractor()))
+                        .peek((key, value) -> System.out.println("Incoming record - key " + key +" value " + value));
+
+        electronicStream.groupByKey().windowedBy(TimeWindows.of(Duration.ofHours(1)))
+                .aggregate(() -> 0.0,
+                        (key, order, total) -> total + order.getPrice(),
+                        Materialized.with(Serdes.String(), Serdes.Double()))
+                .toStream()
+                .map((wk, value) -> KeyValue.pair(wk.key(),value))
+                .peek((key, value) -> System.out.println("Outgoing record - key " + key +" value " + value))
+                .to(outputTopic, Produced.with(Serdes.String(), Serdes.Double()));
+
+        KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), streamsProps);
+        TopicLoader.runProducer();
+        kafkaStreams.start();
     }
 }
