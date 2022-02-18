@@ -1,6 +1,6 @@
 This repository is cloned from [here](https://github.com/confluentinc/learn-kafka-courses)
 for the purpose of following Confluent Cloud's tutorial on Kafka Streams application.
-The video tutorials are [here](https://youtu.be/gJUTErFyuY4).
+The video tutorials are [here](https://youtube.com/playlist?list=PLa7VYi0yPIH35IrbJ7Y0U2YLrR9u4QO-s).
 
 # Kafka Streams Course
 
