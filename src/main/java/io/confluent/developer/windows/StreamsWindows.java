@@ -23,11 +23,36 @@ import static org.apache.kafka.streams.kstream.Suppressed.*;
 import static org.apache.kafka.streams.kstream.Suppressed.BufferConfig.*;
 
 public class StreamsWindows {
-
     public static void main(String[] args) throws IOException {
+        Properties streamsProps = StreamsUtils.loadProperties();
+        streamsProps.put(StreamsConfig.APPLICATION_ID_CONFIG, "windowed-streams");
 
-//        KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), streamsProps);
-//        TopicLoader.runProducer();
-//        kafkaStreams.start();
+        StreamsBuilder builder = new StreamsBuilder();
+
+        String inputTopic = streamsProps.getProperty("windowed.input.topic");
+        String outputTopic = streamsProps.getProperty("windowed.output.topic");
+        Map<String, Object> configMap = StreamsUtils.propertiesToMap(streamsProps);
+
+        SpecificAvroSerde<ElectronicOrder> electronicSerde = StreamsUtils.getSpecificAvroSerde(configMap);
+
+        KStream<String, ElectronicOrder> electronicStream =
+                builder.stream(inputTopic, Consumed.with(Serdes.String(), electronicSerde))
+                        .peek((key, value) -> System.out.println("Incoming record - key " +key +" value " + value));
+
+        // tumbling window (don't use advanceBy() method)
+        electronicStream.groupByKey()
+                .windowedBy(TimeWindows.of(Duration.ofHours(1)).grace(Duration.ofMinutes(5)))
+                .aggregate(() -> 0.0,
+                        (key, order, total) -> total + order.getPrice(),
+                        Materialized.with(Serdes.String(), Serdes.Double()))
+                .suppress(untilWindowCloses(unbounded()))
+                .toStream()
+                .map((wk, value) -> KeyValue.pair(wk.key(),value))
+                .peek((key, value) -> System.out.println("Outgoing record - key " +key +" value " + value))
+                .to(outputTopic, Produced.with(Serdes.String(), Serdes.Double()));
+
+        KafkaStreams kafkaStreams = new KafkaStreams(builder.build(), streamsProps);
+        TopicLoader.runProducer();
+        kafkaStreams.start();
     }
 }
